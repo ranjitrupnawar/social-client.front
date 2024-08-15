@@ -1,0 +1,109 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'backend'
+        SOURCE_CODE_URL = 'https://github.com/ranjitrupnawar/social-server.back.git'
+        BRANCH_NAME = 'main'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout([$class: 'GitSCM', 
+                    userRemoteConfigs: [[url: "${env.SOURCE_CODE_URL}"]],
+                    branches: [[name: "*/${env.BRANCH_NAME}"]]
+                ])
+                echo "Checked out branch: ${env.BRANCH_NAME}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    sh '''
+                    #!/bin/bash
+                    echo "Running build..."
+                    npm install
+                    
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    // Run deployment using bash shell
+                    sh '''
+                    #!/bin/bash
+                    echo "Running deployment..."
+                    pm2 stop all || true 
+                    sleep 30
+                    pm2 start index.js --name ${APP_NAME}
+                    pm2 save
+                    '''
+                }
+            }
+        }
+    }
+    post {
+        success {
+            build job: 'CD -pipeline'
+         }
+       }
+}
+
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'frontend'
+        SOURCE_CODE_URL = 'https://github.com/ranjitrupnawar/social-client.front.git'
+        BRANCH_NAME = 'main'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout([$class: 'GitSCM', 
+                    userRemoteConfigs: [[url: "${env.SOURCE_CODE_URL}"]],
+                    branches: [[name: "*/${env.BRANCH_NAME}"]]
+                ])
+                echo "Checked out branch: ${env.BRANCH_NAME}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    sh '''
+                    #!/bin/bash
+                    echo "Running build..."
+                    npm install
+                    sleep 5
+                    
+                    '''
+                }
+            }
+        }
+        
+
+        stage('Deploy') {
+            steps {
+                script {
+                    // Run deployment using bash shell
+                    sh '''
+                    #!/bin/bash
+                    echo "Running deployment..."
+                    sleep 10
+                    npm start
+                    
+                    '''
+                }
+            }
+        }
+    }
+}
+
