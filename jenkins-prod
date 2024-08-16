@@ -1,0 +1,114 @@
+pipeline {
+    agent any
+
+    environment {
+        BACKEND_APP_NAME = 'backend'
+        BACKEND_SOURCE_CODE_URL = 'https://github.com/ranjitrupnawar/social-server.back.git'
+        FRONTEND_APP_NAME = 'frontend'
+        FRONTEND_SOURCE_CODE_URL = 'https://github.com/ranjitrupnawar/social-client.front.git'
+        BRANCH_NAME = 'Main'
+        ENV = 'Prod'
+    }
+
+    stages {
+        stage('Backend - Checkout') {
+            steps {
+                checkout([$class: 'GitSCM', 
+                    userRemoteConfigs: [[url: "${env.BACKEND_SOURCE_CODE_URL}"]],
+                    branches: [[name: "*/${env.BRANCH_NAME}"]]
+                ])
+                echo "Checked out backend branch: ${env.BRANCH_NAME}"
+            }
+        }
+
+        stage('Backend - Build') {
+            steps {
+                script {
+                    sh '''
+                    #!/bin/bash
+                    echo "Running backend build..."
+                    npm install
+		                sleep 10 
+ 		                npm run build
+                    '''
+                }
+            }
+        }
+
+        stage('Backend - Test') {
+            steps {
+                script {
+                    sh '''
+                    #!/bin/bash
+                    echo "Running backend tests..."
+                    npm run test
+                    '''
+                }
+            }
+        }
+
+        stage('Backend - Deploy to Dev') {
+            steps {
+                script {
+                    sh '''
+                    #!/bin/bash
+                    echo "Deploying backend to Development..."
+                    pm2 stop --name ${BACKEND_APP_NAME} || true 
+                    sleep 30
+                    pm2 start index.js --name ${BACKEND_APP_NAME}
+                    pm2 save
+                    '''
+                }
+            }
+        }
+
+        stage('Frontend - Checkout') {
+            steps {
+                checkout([$class: 'GitSCM', 
+                    userRemoteConfigs: [[url: "${env.FRONTEND_SOURCE_CODE_URL}"]],
+                    branches: [[name: "*/${env.BRANCH_NAME}"]]
+                ])
+                echo "Checked out frontend branch: ${env.BRANCH_NAME}"
+            }
+        }
+
+        stage('Frontend - Build') {
+            steps {
+                script {
+                    sh '''
+                    #!/bin/bash
+                    echo "Running frontend build..."
+                    npm install
+                    sleep 10 
+ 		                npm run build
+                    '''
+                }
+            }
+        }
+
+        stage('Frontend - Test') {
+            steps {
+                script {
+                    sh '''
+                    #!/bin/bash
+                    echo "Running frontend tests..."
+                    npm run test
+                    '''
+                }
+            }
+        }
+
+        stage('Frontend - Deploy to Dev') {
+            steps {
+                script {
+                    sh '''
+                    #!/bin/bash
+                    echo "Deploying frontend to Development..."
+                    sleep 10
+                    npm start
+                    '''
+                }
+            }
+        }
+    }
+}
